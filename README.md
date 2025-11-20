@@ -12,6 +12,7 @@ A world-class image and video tokenizer integrating state-of-the-art compression
 - **[Getting Started Guide](GETTING_STARTED.md)** - Complete beginner tutorial
 - **[API Reference](API_REFERENCE.md)** - Detailed API documentation
 - **[Examples](EXAMPLES.md)** - Practical code examples
+- **[Enterprise Features Guide](ENTERPRISE.md)** - Production-scale features (billing, safety, monitoring)
 - **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
 - **[FAQ](FAQ.md)** - Frequently asked questions
 
@@ -42,6 +43,15 @@ This tokenizer provides unprecedented compression ratios (up to 2048×) while ma
 - **Video Features:** Causal processing, sliding window for long videos
 - **Performance Optimizations:** Mixed precision, JIT compilation support
 - **Testing:** Unit tests for core functionality
+- **Enterprise Features:** ✨ NEW!
+  - Modality-aware tokenization architecture
+  - Token counting & billing system
+  - Usage tracking & analytics
+  - Safety validation (rate limiting, input validation)
+  - Performance benchmarking suite
+  - Reconstruction quality metrics (PSNR, SSIM, LPIPS)
+  - Batch processing optimization (caching, dynamic batching)
+  - Versioning & metadata management
 
 ### ⚠️ Planned/Not Yet Implemented
 
