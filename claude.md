@@ -5,9 +5,33 @@
 A world-class image and video tokenizer integrating state-of-the-art compression techniques from NVIDIA Cosmos-Tokenizer, GloTok, AdaTok, CORE, and SCAR research. Achieves up to 2048× compression ratio while maintaining superior reconstruction quality.
 
 **Repository:** `/home/user/image-tokenizer-main`
-**Status:** Production-ready implementation
+**Status:** Production-ready core implementation
 **Version:** 1.0.0
 **License:** Apache 2.0
+
+## Implementation Status Summary
+
+✅ **Fully Implemented:**
+- Core tokenizer architectures (CI, DI, CV, DV)
+- All quantization methods (VQ, FSQ, LFQ, Residual FSQ)
+- High-level APIs (ImageTokenizer, VideoTokenizer)
+- Training infrastructure (losses, configs)
+- Video features (causal processing, sliding windows)
+
+⚠️ **Not Yet Implemented:**
+- Pre-trained model checkpoints
+- CLI tools (cosmos-image, cosmos-video, etc.)
+- Full training scripts
+- Advanced features (dual-codebook, object-aware, SCAR)
+- Benchmarking suite
+- Example notebooks
+
+🔗 **User Documentation:**
+- [GETTING_STARTED.md](GETTING_STARTED.md) - Comprehensive beginner guide
+- [API_REFERENCE.md](API_REFERENCE.md) - Complete API documentation
+- [EXAMPLES.md](EXAMPLES.md) - Practical code examples
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues and solutions
+- [FAQ.md](FAQ.md) - Frequently asked questions
 
 ## Architecture
 

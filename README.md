@@ -2,41 +2,65 @@
 
 A world-class image and video tokenizer integrating state-of-the-art compression techniques from NVIDIA Cosmos, GloTok, AdaTok, CORE, and SCAR research.
 
+> **📋 Documentation Status:**
+> - **✅ Core Architecture:** Fully implemented and production-ready
+> - **⚠️ Pre-trained Weights:** Not yet available (training required)
+> - **📚 Getting Started:** See [GETTING_STARTED.md](GETTING_STARTED.md) for comprehensive tutorials
+
+## Quick Links
+
+- **[Getting Started Guide](GETTING_STARTED.md)** - Complete beginner tutorial
+- **[API Reference](API_REFERENCE.md)** - Detailed API documentation
+- **[Examples](EXAMPLES.md)** - Practical code examples
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[FAQ](FAQ.md)** - Frequently asked questions
+
 ## Overview
 
 This tokenizer provides unprecedented compression ratios (up to 2048×) while maintaining superior reconstruction quality through:
 
-- **Dual-codebook architecture** (semantic + visual) for optimal information preservation
-- **Object-aware compression** with SAM integration for semantically meaningful tokens
 - **Continuous and discrete modes** for diffusion and autoregressive generation
 - **Causal video processing** for frame-by-frame generation
 - **Multi-stage quantization** with VQ, FSQ, LFQ, and Residual FSQ
-- **Spatial-temporal reasoning** optimized for embodied AI applications
-
-## Key Features
-
-### Compression Performance
-- 8× better compression than state-of-the-art methods
-- 2-12× faster encoding/decoding
-- Up to 2048× total compression ratio (8×16×16 for video)
-- Maintains higher image quality at extreme compression
+- **Spatial-temporal compression** optimized for AI model training
 
 ### Architecture Modes
+
 - **CI (Continuous Image)**: 8×8 or 16×16 compression for diffusion models
-- **DI (Discrete Image)**: 8×8 or 16×16 with 64K token vocabulary
+- **DI (Discrete Image)**: 8×8 or 16×16 with 64K token vocabulary for autoregressive models
 - **CV (Continuous Video)**: 4×8×8 or 8×8×8 temporal-spatial compression
 - **DV (Discrete Video)**: 8×16×16 for autoregressive video generation
 
-### Advanced Capabilities
-- Object-centric token compression (CORE/AdaTok)
-- Global histogram relation learning (GloTok)
-- Semantic alignment guidance (SCAR)
-- Haar wavelet patching for lossless compression
-- Factorized 3D convolutions for efficient video processing
+## Implementation Status
 
-## Quick Start
+### ✅ Currently Implemented
 
-### Installation
+- **Core Tokenizers:** CI, DI, CV, DV modes fully functional
+- **Quantization Methods:** VQ, FSQ, LFQ, Residual FSQ
+- **High-Level APIs:** `ImageTokenizer` and `VideoTokenizer` classes
+- **Training Infrastructure:** Loss functions, optimizer support
+- **Video Features:** Causal processing, sliding window for long videos
+- **Performance Optimizations:** Mixed precision, JIT compilation support
+- **Testing:** Unit tests for core functionality
+
+### ⚠️ Planned/Not Yet Implemented
+
+- **Pre-trained Checkpoints:** Coming soon (you must train your own for now)
+- **CLI Tools:** Command-line interfaces (referenced in setup.py but not implemented)
+- **Training Scripts:** Full end-to-end training pipelines (basic examples available)
+- **Advanced Features:** Dual-codebook (GloTok), object-aware compression (AdaTok/CORE), semantic alignment (SCAR)
+- **Benchmarking Suite:** Comprehensive evaluation scripts
+- **Model Zoo:** Pre-trained model repository
+
+## Installation
+
+### Prerequisites
+
+- Python >= 3.10
+- PyTorch >= 2.0.0
+- CUDA >= 11.8 (recommended for GPU support)
+
+### Basic Installation
 
 ```bash
 # Clone repository
@@ -45,38 +69,64 @@ cd cosmos-image-tokenizer
 
 # Install dependencies
 pip install -e .
+```
 
-# Install with video support
+### Installation with Optional Features
+
+```bash
+# Video support (av, opencv, etc.)
 pip install -e ".[video]"
 
-# Install with training support
+# Training support (PyTorch Lightning, W&B, etc.)
 pip install -e ".[train]"
 
-# Install everything
+# Development tools (pytest, black, etc.)
+pip install -e ".[dev]"
+
+# Everything
 pip install -e ".[all]"
 ```
 
-### Basic Usage
+### GPU Support
+
+Install PyTorch with CUDA first:
+
+```bash
+# For CUDA 12.1
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# For CUDA 11.8
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# Then install tokenizer
+pip install -e .
+```
+
+## Quick Start
+
+### Image Tokenization
 
 ```python
+import torch
 from cosmos_tokenizer import ImageTokenizer
 
-# Initialize tokenizer
+# Initialize discrete image tokenizer
 tokenizer = ImageTokenizer(
-    mode="DI",  # Discrete Image
+    mode="DI",  # Discrete Image mode
     spatial_compression=16,
-    device="cuda"
+    device="cuda" if torch.cuda.is_available() else "cpu"
 )
 
-# Encode image
-import torch
-image = torch.randn(1, 3, 256, 256)  # B×C×H×W, range [-1, 1]
-latent = tokenizer.encode(image)  # B×h×w discrete indices
+# Prepare image (must be in range [-1, 1])
+image = torch.randn(1, 3, 256, 256) * 2 - 1  # (B, C, H, W)
 
-# Decode
-reconstructed = tokenizer.decode(latent)  # B×3×H×W
+# Encode to discrete tokens
+tokens = tokenizer.encode(image)  # (1, 16, 16) integer indices
 
-# Full round-trip
+# Decode back to image
+reconstructed = tokenizer.decode(tokens)  # (1, 3, 256, 256)
+
+# Or full round-trip
 reconstructed = tokenizer(image)
 ```
 
@@ -85,49 +135,64 @@ reconstructed = tokenizer(image)
 ```python
 from cosmos_tokenizer import VideoTokenizer
 
+# Initialize continuous video tokenizer
 tokenizer = VideoTokenizer(
-    mode="CV",
+    mode="CV",  # Continuous Video mode
     spatial_compression=8,
     temporal_compression=8,
     device="cuda"
 )
 
-# Process video
-video = torch.randn(1, 3, 32, 256, 256)  # B×C×T×H×W
+# Prepare video (B, C, T, H, W) in range [-1, 1]
+video = torch.randn(1, 3, 32, 256, 256) * 2 - 1
+
+# Process with sliding window (memory-efficient)
 reconstructed = tokenizer(video, temporal_window=17)
 ```
 
-### Object-Aware Compression
+### Working with Real Images
 
 ```python
-from cosmos_tokenizer import ObjectAwareTokenizer
+from PIL import Image
+import numpy as np
 
-tokenizer = ObjectAwareTokenizer(
-    base_tokenizer="DI",
-    segmentation_model="sam",
-    compression_ratio=0.1  # Use only 10% of tokens
-)
+# Load and preprocess
+img = Image.open("photo.jpg").convert("RGB").resize((256, 256))
+img_array = np.array(img).astype(np.float32) / 255.0  # [0, 1]
+img_tensor = torch.from_numpy(img_array).permute(2, 0, 1)  # (3, H, W)
+img_tensor = img_tensor * 2.0 - 1.0  # [-1, 1]
+img_tensor = img_tensor.unsqueeze(0)  # (1, 3, H, W)
 
-# Automatically merges tokens based on object segmentation
-latent = tokenizer.encode(image)  # Adaptive token count
+# Tokenize
+tokens = tokenizer.encode(img_tensor.to(tokenizer.device))
+
+# Reconstruct
+reconstructed = tokenizer.decode(tokens)
+
+# Convert back to PIL
+reconstructed = (reconstructed.squeeze(0).cpu() + 1.0) / 2.0
+reconstructed = torch.clamp(reconstructed, 0, 1)
+reconstructed = (reconstructed.permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+result_img = Image.fromarray(reconstructed)
+result_img.save("reconstructed.jpg")
 ```
 
-## Architecture
+**For more examples, see [EXAMPLES.md](EXAMPLES.md)**
+
+## Architecture Overview
 
 ### Encoder Pipeline
 ```
 Input Image/Video
     ↓
-Haar Wavelet Patching (4×4)
+Haar Wavelet Patching (4×4 lossless compression)
     ↓
 Progressive Downsampling
   - ResNet Blocks
   - Self-Attention @ 32px
-  - Channel Multipliers: [2, 4, 4]
+  - Channel Multipliers: [1, 2, 4, 4]
     ↓
-Dual-Codebook Quantization
-  - Semantic Codebook (high-freq)
-  - Visual Codebook (low-freq)
+Quantization (VQ/FSQ/LFQ/Residual FSQ)
     ↓
 Latent Representation
 ```
@@ -150,129 +215,96 @@ Reconstructed Image/Video
 
 ## Training
 
-### Dataset Preparation
+**Note:** Pre-trained weights are not included. You must train your own models.
+
+### Basic Training Example
 
 ```python
-from cosmos_tokenizer.data import TokenizerDataset
+from cosmos_tokenizer.networks.autoencoder import DiscreteImageTokenizer
+from cosmos_tokenizer.networks.configs import COSMOS_DI_16x16
+from cosmos_tokenizer.training.losses import TokenizerLoss
 
-dataset = TokenizerDataset(
-    image_dir="path/to/images",
-    video_dir="path/to/videos",
-    resolution=256,
-    temporal_length=17
+# Create model
+model = DiscreteImageTokenizer(COSMOS_DI_16x16).cuda()
+
+# Create loss
+criterion = TokenizerLoss(
+    recon_loss_type="l1",
+    perceptual_weight=1.0,
+    quantizer_weight=1.0,
 )
+
+# Optimizer
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+
+# Training loop
+for images in dataloader:
+    images = images.cuda()
+
+    # Forward
+    reconstructed, info = model(images)
+
+    # Compute loss
+    losses = criterion(reconstructed, images, info)
+    total_loss = losses["total_loss"]
+
+    # Backward
+    optimizer.zero_grad()
+    total_loss.backward()
+    optimizer.step()
 ```
 
-### Training Script
+### Training Configurations
 
-```bash
-python scripts/train.py \
-    --config configs/di_16x16.yaml \
-    --data_dir /path/to/data \
-    --output_dir checkpoints/di_16x16 \
-    --gpus 8 \
-    --batch_size 256
-```
-
-### Configuration
-
-See `configs/` for pre-configured training setups:
+See `configs/` directory for pre-configured training setups:
 - `ci_8x8.yaml` - Continuous Image 8×8
 - `di_16x16.yaml` - Discrete Image 16×16
-- `cv_8x8x8.yaml` - Continuous Video 8×8×8
-- `dv_8x16x16.yaml` - Discrete Video 8×16×16
 
-## Benchmarking
+**For full training guides, see [GETTING_STARTED.md](GETTING_STARTED.md) and [EXAMPLES.md](EXAMPLES.md)**
 
-```bash
-# Run comprehensive benchmarks
-python scripts/benchmark.py \
-    --checkpoint path/to/model.pt \
-    --dataset imagenet_val \
-    --metrics fid ssim psnr lpips
+## Compression Performance
 
-# Compare against baselines
-python scripts/compare.py \
-    --models di_16x16 vqgan sdxl_vae \
-    --dataset davis_val
-```
+| Mode | Input Size | Token Size | Compression Ratio |
+|------|------------|------------|-------------------|
+| DI 8×8 | 256×256×3 | 32×32 | 64× spatial |
+| DI 16×16 | 256×256×3 | 16×16 | 256× spatial |
+| DV 8×16×16 | 256×256×32×3 | 16×16×4 | 2048× total |
 
-## Docker Deployment
+**Note:** Actual quality depends on training. Without pre-trained weights, reconstructions will be poor until you train the model.
+
+## Docker Support
 
 ```bash
 # Build container
 docker build -t cosmos-tokenizer .
 
-# Run inference
-docker run --gpus all -v $(pwd)/data:/data cosmos-tokenizer \
-    python inference.py --input /data/images --output /data/output
+# Run interactive session
+docker run --gpus all -it cosmos-tokenizer
+
+# Mount data directory
+docker run --gpus all -v $(pwd)/data:/workspace/data cosmos-tokenizer
 ```
 
-## CLI Tools
-
-### Image Tokenization
-```bash
-cosmos-image encode \
-    --input images/*.jpg \
-    --output tokens/ \
-    --checkpoint model.pt \
-    --mode DI
-
-cosmos-image decode \
-    --input tokens/*.pt \
-    --output reconstructed/ \
-    --checkpoint model.pt
-```
-
-### Video Tokenization
-```bash
-cosmos-video encode \
-    --input videos/*.mp4 \
-    --output tokens/ \
-    --checkpoint model.pt \
-    --temporal_window 17
-```
-
-## Model Zoo
-
-Pre-trained checkpoints available on Hugging Face:
-
-| Model | Type | Compression | Codebook | FID ↓ | PSNR ↑ | Download |
-|-------|------|-------------|----------|-------|--------|----------|
-| cosmos-ci-8x8 | Continuous Image | 8×8 | - | 0.45 | 28.5 | [HF](link) |
-| cosmos-ci-16x16 | Continuous Image | 16×16 | - | 0.83 | 25.2 | [HF](link) |
-| cosmos-di-8x8 | Discrete Image | 8×8 | 64K | 0.52 | 27.8 | [HF](link) |
-| cosmos-di-16x16 | Discrete Image | 16×16 | 64K | 0.95 | 24.6 | [HF](link) |
-| cosmos-cv-8x8x8 | Continuous Video | 8×8×8 | - | 1.12 | 26.1 | [HF](link) |
-| cosmos-dv-8x16x16 | Discrete Video | 8×16×16 | 64K | 1.45 | 23.9 | [HF](link) |
-
-## Performance
-
-Benchmarked on NVIDIA A100 80GB:
-
-| Operation | Resolution | FPS | Memory |
-|-----------|-----------|-----|--------|
-| Encode (CI) | 256×256 | 1250 | 2.1 GB |
-| Decode (CI) | 256×256 | 1180 | 1.8 GB |
-| Encode (CV) | 256×256×17 | 85 | 8.4 GB |
-| Decode (CV) | 256×256×17 | 92 | 7.2 GB |
-
-## Research Papers
+## Research Integration
 
 This implementation integrates techniques from:
 
-1. **NVIDIA Cosmos** - Production-grade continuous/discrete tokenization
-2. **GloTok** - Global perspective with dual-codebook architecture
-3. **AdaTok** - Object-aware adaptive compression
-4. **CORE** - Object-centric token merging with spatial ordering
-5. **SCAR** - Semantic alignment guidance for AR editing
+1. **NVIDIA Cosmos-Tokenizer** - Production-grade architecture, causal video processing ✅ **Implemented**
+2. **GloTok** - Dual-codebook architecture ⚠️ **Planned**
+3. **AdaTok** - Object-aware adaptive compression ⚠️ **Planned**
+4. **CORE** - Object-centric token merging ⚠️ **Planned**
+5. **SCAR** - Semantic alignment guidance ⚠️ **Planned**
+
+**Currently implemented:** Core NVIDIA Cosmos architecture with multiple quantization methods (VQ, FSQ, LFQ, Residual FSQ).
+
+**Planned:** Advanced features from other papers (dual-codebook, object-aware compression, semantic alignment).
 
 ## Citation
 
 ```bibtex
 @software{cosmos_tokenizer_2025,
   title={Cosmos Image Tokenizer: World-Class Visual Compression},
-  author={Your Name},
+  author={Cosmos Tokenizer Team},
   year={2025},
   url={https://github.com/yourusername/cosmos-image-tokenizer}
 }
@@ -280,14 +312,24 @@ This implementation integrates techniques from:
 
 ## License
 
-This project is licensed under the Apache 2.0 License. See LICENSE for details.
-
-Pre-trained models are provided under their respective licenses. Check each model's documentation for specific terms.
+This project is licensed under the Apache 2.0 License. See [LICENSE](LICENSE) for details.
 
 ## Contributing
 
-We welcome contributions! Please see CONTRIBUTING.md for guidelines.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Acknowledgments
 
-Built on research from NVIDIA, and inspired by cutting-edge papers in visual tokenization. Special thanks to the open-source community for their foundational work.
+Built on research from NVIDIA and inspired by cutting-edge papers in visual tokenization. Special thanks to the open-source community for their foundational work.
+
+## Support
+
+- **Issues:** [GitHub Issues](https://github.com/yourusername/cosmos-image-tokenizer/issues)
+- **Documentation:** See the [documentation links](#quick-links) above
+- **Discussions:** [GitHub Discussions](https://github.com/yourusername/cosmos-image-tokenizer/discussions)
+
+---
+
+**⭐ Star this repo** if you find it useful!
+
+**📖 Read [GETTING_STARTED.md](GETTING_STARTED.md)** for a comprehensive tutorial.
