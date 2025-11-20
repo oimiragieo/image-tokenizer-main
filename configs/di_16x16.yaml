@@ -1,0 +1,52 @@
+# Discrete Image Tokenizer 16×16 Configuration
+
+model:
+  mode: "DI"
+  spatial_compression: 16
+  z_channels: 6
+
+  # Architecture
+  ch: 128
+  ch_mult: [1, 2, 4, 4]
+  num_res_blocks: 2
+  attn_resolutions: [32]
+  dropout: 0.0
+
+  # Patching
+  patch_size: 4
+  patch_method: "haar"
+
+  # Quantization
+  quantizer_type: "fsq"
+  fsq_levels: [8, 8, 8, 5, 5, 5]  # 64K codebook
+
+training:
+  batch_size: 256
+  learning_rate: 1.0e-4
+  num_epochs: 100
+  warmup_steps: 10000
+
+  # Loss weights
+  recon_loss_type: "l1"
+  perceptual_weight: 1.0
+  quantizer_weight: 1.0
+  use_perceptual: true
+
+  # Optimization
+  optimizer: "adamw"
+  weight_decay: 0.01
+
+  # Learning rate schedule
+  scheduler: "cosine"
+  min_lr: 1.0e-6
+
+data:
+  train_dir: "data/imagenet/train"
+  val_dir: "data/imagenet/val"
+  image_size: 256
+  num_workers: 8
+
+logging:
+  log_every_n_steps: 100
+  save_every_n_epochs: 5
+  wandb_project: "cosmos-tokenizer"
